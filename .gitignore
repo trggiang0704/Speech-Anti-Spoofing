@@ -18,4 +18,6 @@ outputs/**/splits/
 # Predictions
 outputs/**/predictions/
 
-datasets
+datasets/*
+!datasets/
+!datasets/README.md
