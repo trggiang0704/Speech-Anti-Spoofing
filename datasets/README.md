@@ -1,41 +1,61 @@
-# Dataset
+# Datasets
 
-The dataset used in this project is not included in this repository due to its large size.
+Dataset files are not included in this repository.
 
 ## Source
 
-Original dataset: https://huggingface.co/datasets/hustep-lab/VSASV-Dataset
+VSASV Dataset:
 
-## Reproduction
+https://huggingface.co/datasets/hustep-lab/VSASV-Dataset
 
-The processed dataset can be generated using:
+## Generate Dataset
 
 ```bash
 python src/create_dataset.py
 ```
 
-The script:
-
-* Reads the original VSASV dataset from `.parquet` files.
-* Creates a binary anti-spoofing dataset (`bonafide` vs `spoof`).
-* Splits the data into train (80%), validation (10%), and test (10%).
-* Saves audio files as `.wav`.
-* Generates a `labels.csv` file.
-
-The generated dataset structure is:
+Output:
 
 ```text
-VSASV_20000/
-├── train/
-│   ├── bonafide/
-│   └── spoof/
-├── val/
-│   ├── bonafide/
-│   └── spoof/
-├── test/
-│   ├── bonafide/
-│   └── spoof/
-└── labels.csv
+raw/
+└── VSASV_50000/
 ```
 
-> Note: Large dataset files are intentionally excluded from GitHub.
+## Preprocess Audio
+
+```bash
+python src/preprocess.py
+```
+
+Output:
+
+```text
+processed/
+└── VSASV_50000/
+```
+
+## Create Mel Spectrograms
+
+```bash
+python src/create_melspec.py
+```
+
+Output:
+
+```text
+melspec/
+└── VSASV_50000/
+```
+
+## Data Split
+
+- Train: 80%
+- Validation: 10%
+- Test: 10%
+
+## Labels
+
+- Stage 1: `bonafide`, `spoof`
+- Stage 2: `adversarial_attack`, `voice_conversion`
+
+> Dataset files are excluded from GitHub due to their size.
