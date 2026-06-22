@@ -11,3 +11,5 @@ torch>=2.3
 torchaudio>=2.3
 torchvision>=0.18
 joblib>=1.4
+
+wandb

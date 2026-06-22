@@ -3,11 +3,10 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
 import torch
+import wandb
 
 from sklearn.metrics import (
     accuracy_score,
-    precision_score,
-    recall_score,
     f1_score,
 )
 
@@ -21,7 +20,7 @@ from src.dataset import SpeechDataset
 from src.evaluation import evaluate
 
 from models.cnn import CNN
-import wandb
+
 
 # ======================================================
 # CONFIG
@@ -43,11 +42,19 @@ MODEL_NAME = "CNN"
 
 LABEL_MAP = {
 
-    "bonafide": 0,
+    "adversarial_attack": 0,
 
-    "spoof": 1,
+    "voice_conversion": 1,
 
 }
+
+TARGET_LABELS = [
+
+    "adversarial_attack",
+
+    "voice_conversion",
+
+]
 
 
 # ======================================================
@@ -74,7 +81,7 @@ OUTPUT_DIR = (
 
     / "outputs"
 
-    / f"stage1_{MODEL_NAME.lower()}"
+    / f"stage2_{MODEL_NAME.lower()}"
 
 )
 
@@ -92,6 +99,10 @@ OUTPUT_DIR.mkdir(
 # ======================================================
 
 def main():
+
+    # ==================================================
+    # DEVICE
+    # ==================================================
 
     device = torch.device(
 
@@ -116,14 +127,26 @@ def main():
     print("=" * 70)
 
     # ==================================================
-    # WANDB
+    # SEED
+    # ==================================================
+
+    SEED = 42
+
+    torch.manual_seed(SEED)
+
+    if torch.cuda.is_available():
+
+        torch.cuda.manual_seed_all(SEED)
+
+    # ==================================================
+    # W&B
     # ==================================================
 
     wandb.init(
 
         project="speech-anti-spoofing",
 
-        name=f"{MODEL_NAME}_{DATASET_NAME}",
+        name=f"stage2_{MODEL_NAME.lower()}",
 
         config={
 
@@ -137,8 +160,6 @@ def main():
 
             "learning_rate": LEARNING_RATE,
 
-            "patience": PATIENCE,
-
         },
 
     )
@@ -148,15 +169,11 @@ def main():
     # ==================================================
 
     train_dataset = SpeechDataset(
-
         DATASET_DIR,
-
         "train",
-
-        "binary_label",
-
+        "original_type",
         LABEL_MAP,
-
+        allowed_labels= TARGET_LABELS
     )
 
     val_dataset = SpeechDataset(
@@ -165,10 +182,11 @@ def main():
 
         "val",
 
-        "binary_label",
+        "original_type",
 
         LABEL_MAP,
 
+        allowed_labels= TARGET_LABELS
     )
 
     test_dataset = SpeechDataset(
@@ -177,10 +195,11 @@ def main():
 
         "test",
 
-        "binary_label",
+        "original_type",
 
         LABEL_MAP,
 
+        allowed_labels= TARGET_LABELS
     )
 
     print()
@@ -329,13 +348,17 @@ def main():
 
     for epoch in range(EPOCHS):
 
+        # ==============================================
+        # TRAIN
+        # ==============================================
+
         model.train()
+
+        train_loss = 0
 
         train_correct = 0
 
         train_total = 0
-
-        train_loss = 0
 
         for x, y in tqdm(
 
@@ -403,17 +426,17 @@ def main():
 
             train_total += y.size(0)
 
+        train_loss /= len(
+
+            train_loader
+
+        )
+
         train_acc = (
 
             train_correct
 
             / train_total
-
-        )
-
-        train_loss /= len(
-
-            train_loader
 
         )
 
@@ -423,65 +446,72 @@ def main():
 
         model.eval()
 
-        y_true = []
-        y_pred = []
-
         val_loss = 0
+
+        y_true = []
+
+        y_pred = []
 
         with torch.no_grad():
 
             for x, y in val_loader:
 
                 x = x.to(device)
+
                 y = y.to(device)
 
                 outputs = model(x)
 
                 loss = criterion(
+
                     outputs,
+
                     y,
+
                 )
 
                 val_loss += loss.item()
 
                 preds = outputs.argmax(
+
                     dim=1
+
                 )
 
                 y_true.extend(
+
                     y.cpu().numpy()
+
                 )
 
                 y_pred.extend(
+
                     preds.cpu().numpy()
+
                 )
 
-        val_loss /= len(val_loader)
+        val_loss /= len(
+
+            val_loader
+
+        )
 
         val_acc = accuracy_score(
-            y_true,
-            y_pred,
-        )
 
-        val_precision = precision_score(
             y_true,
-            y_pred,
-            average="macro",
-            zero_division=0,
-        )
 
-        val_recall = recall_score(
-            y_true,
             y_pred,
-            average="macro",
-            zero_division=0,
+
         )
 
         val_f1 = f1_score(
+
             y_true,
+
             y_pred,
+
             average="macro",
-            zero_division=0,
+
         )
 
         scheduler.step(
@@ -504,32 +534,6 @@ def main():
 
             "val_acc": val_acc,
 
-            "val_precision": val_precision,
-
-            "val_recall": val_recall,
-
-            "val_f1": val_f1,
-
-            "lr": current_lr,
-
-        })
-        
-        wandb.log({
-
-            "epoch": epoch + 1,
-
-            "train_loss": train_loss,
-
-            "train_acc": train_acc,
-
-            "val_loss": val_loss,
-
-            "val_acc": val_acc,
-
-            "val_precision": val_precision,
-
-            "val_recall": val_recall,
-
             "val_f1": val_f1,
 
             "lr": current_lr,
@@ -538,51 +542,23 @@ def main():
 
         print()
 
-        print(
+        print(f"Epoch {epoch+1}/{EPOCHS}")
 
-            f"Epoch {epoch+1}/{EPOCHS}"
+        print(f"Train Loss: {train_loss:.4f}")
 
-        )
+        print(f"Train Acc : {train_acc:.4f}")
 
-        print(
+        print(f"Val Loss  : {val_loss:.4f}")
 
-            f"Train Loss: {train_loss:.4f}"
+        print(f"Val Acc   : {val_acc:.4f}")
 
-        )
+        print(f"Val F1    : {val_f1:.4f}")
 
-        print(
+        print(f"LR        : {current_lr:.6f}")
 
-            f"Train Acc: {train_acc:.4f}"
-
-        )
-        
-        print(
-            f"Val Loss: {val_loss:.4f}"
-        )
-
-        print(
-            f"Val Acc: {val_acc:.4f}"
-        )
-
-        print(
-            f"Val Precision: {val_precision:.4f}"
-        )
-
-        print(
-            f"Val Recall: {val_recall:.4f}"
-        )
-
-        print(
-
-            f"Val F1: {val_f1:.4f}"
-
-        )
-
-        print(
-
-            f"LR: {current_lr:.6f}"
-
-        )
+        # ==============================================
+        # SAVE BEST MODEL
+        # ==============================================
 
         if val_f1 > best_f1:
 
@@ -600,25 +576,41 @@ def main():
 
             )
 
-            print(
-
-                "Saved best model"
-
-            )
+            print("Saved best model")
 
         else:
 
             early_stop_counter += 1
+            
+        wandb.log({
+
+            "epoch": epoch + 1,
+
+            "train_loss": train_loss,
+
+            "train_acc": train_acc,
+
+            "val_loss": val_loss,
+
+            "val_acc": val_acc,
+
+            "val_f1": val_f1,
+
+            "best_val_f1": best_f1,
+
+            "lr": current_lr,
+
+        })
+
+        # ==============================================
+        # EARLY STOPPING
+        # ==============================================
 
         if early_stop_counter >= PATIENCE:
 
             print()
 
-            print(
-
-                "Early stopping"
-
-            )
+            print("Early stopping")
 
             break
 
@@ -656,7 +648,15 @@ def main():
 
         history_df["epoch"],
 
-        history_df["train_acc"],
+        history_df["train_loss"],
+
+    )
+
+    plt.plot(
+
+        history_df["epoch"],
+
+        history_df["val_loss"],
 
     )
 
@@ -672,7 +672,9 @@ def main():
 
         [
 
-            "train_acc",
+            "train_loss",
+
+            "val_loss",
 
             "val_f1",
 
@@ -762,57 +764,23 @@ def main():
 
         OUTPUT_DIR,
 
-        class_names=[
-
-            "bonafide",
-
-            "spoof",
-
-        ],
+        class_names=TARGET_LABELS,
 
     )
-    
+
     wandb.log({
 
-        "test_accuracy":
+        "test_accuracy": metrics["accuracy"],
 
-            metrics["accuracy"],
+        "test_precision_macro": metrics["precision_macro"],
 
-        "test_precision":
+        "test_recall_macro": metrics["recall_macro"],
 
-            metrics["precision_macro"],
+        "test_f1_macro": metrics["f1_macro"],
 
-        "test_recall":
-
-            metrics["recall_macro"],
-
-        "test_f1":
-
-            metrics["f1_macro"],
-
-    })
+    }) 
     
-    artifact = wandb.Artifact(
-
-        "best_model",
-
-        type="model",
-
-    )
-
-    artifact.add_file(
-
-        OUTPUT_DIR
-
-        / "best_model.pth"
-
-    )
-
-    wandb.log_artifact(
-
-        artifact
-
-    )
+    wandb.finish()
 
     print()
 
@@ -836,8 +804,7 @@ def main():
 
     print(OUTPUT_DIR)
 
-    wandb.finish()
-    
+
 if __name__ == "__main__":
 
     main()

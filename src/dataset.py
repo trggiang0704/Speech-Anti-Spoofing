@@ -10,24 +10,15 @@ from torch.utils.data import Dataset
 class SpeechDataset(Dataset):
 
     def __init__(
-
         self,
-
         dataset_dir,
-
         split,
-
         label_column,
-
         label_map,
-
+        allowed_labels=None,
     ):
 
-        self.dataset_dir = Path(
-
-            dataset_dir
-
-        )
+        self.dataset_dir = Path(dataset_dir)
 
         self.label_column = label_column
 
@@ -36,16 +27,41 @@ class SpeechDataset(Dataset):
         self.df = pd.read_csv(
 
             self.dataset_dir
-
             / "labels.csv"
 
         )
+
+        # split
 
         self.df = self.df[
 
             self.df["split"] == split
 
-        ].reset_index(
+        ]
+
+        # chỉ giữ label cần thiết
+
+        if allowed_labels is not None:
+
+            self.df = self.df[
+
+                self.df[label_column]
+
+                .isin(allowed_labels)
+
+            ]
+
+        else:
+
+            self.df = self.df[
+
+                self.df[label_column]
+
+                .isin(label_map.keys())
+
+            ]
+
+        self.df = self.df.reset_index(
 
             drop=True
 
@@ -115,7 +131,7 @@ class SpeechDataset(Dataset):
 
 
 # ======================================================
-# DEBUG FUNCTION
+# DEBUG
 # ======================================================
 
 def debug_dataset(
@@ -142,7 +158,11 @@ def debug_dataset(
 
     print()
 
-    for i in range(5):
+    for i in range(
+
+        min(5, len(dataset))
+
+    ):
 
         x, y = dataset[i]
 
