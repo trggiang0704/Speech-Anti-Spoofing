@@ -1,23 +1,29 @@
+import torch
+
 import torch.nn as nn
 
+import torch.nn.functional as F
 
-class CNN(
 
-    nn.Module
-
-):
+class CNN(nn.Module):
 
     def __init__(
 
         self,
 
-        num_classes,
+        num_classes=3,
+
+        embedding_dim=128,
 
     ):
 
         super().__init__()
 
-        self.features = nn.Sequential(
+        # =====================
+        # CNN BACKBONE
+        # =====================
+
+        self.backbone = nn.Sequential(
 
             nn.Conv2d(
 
@@ -25,7 +31,7 @@ class CNN(
 
                 32,
 
-                3,
+                kernel_size=3,
 
                 padding=1,
 
@@ -43,7 +49,7 @@ class CNN(
 
                 64,
 
-                3,
+                kernel_size=3,
 
                 padding=1,
 
@@ -61,7 +67,7 @@ class CNN(
 
                 128,
 
-                3,
+                kernel_size=3,
 
                 padding=1,
 
@@ -73,17 +79,41 @@ class CNN(
 
             nn.Dropout(0.3),
 
+        )
+
+        # =====================
+        # GLOBAL POOLING
+        # =====================
+
+        self.global_pool = (
+
             nn.AdaptiveAvgPool2d(
 
                 (1, 1)
 
-            ),
+            )
 
         )
 
-        self.classifier = nn.Linear(
+        # =====================
+        # SHARED EMBEDDING
+        # =====================
+
+        self.embedding = nn.Linear(
 
             128,
+
+            embedding_dim,
+
+        )
+
+        # =====================
+        # CLASSIFIER HEAD
+        # =====================
+
+        self.classifier = nn.Linear(
+
+            embedding_dim,
 
             num_classes,
 
@@ -95,10 +125,60 @@ class CNN(
 
         x,
 
+        return_embedding=False,
+
     ):
 
-        x = self.features(x)
+        # =====================
+        # BACKBONE
+        # =====================
+
+        x = self.backbone(
+
+            x
+
+        )
+
+        x = self.global_pool(
+
+            x
+
+        )
 
         x = x.flatten(1)
 
-        return self.classifier(x)
+        # =====================
+        # EMBEDDING
+        # =====================
+
+        embedding = self.embedding(
+
+            x
+
+        )
+
+        embedding = F.normalize(
+
+            embedding,
+
+            p=2,
+
+            dim=1,
+
+        )
+
+        # =====================
+        # CLASSIFICATION
+        # =====================
+
+        logits = self.classifier(
+
+            embedding
+
+        )
+
+        if return_embedding:
+
+            return logits, embedding
+
+        return logits

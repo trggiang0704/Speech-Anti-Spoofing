@@ -1,71 +1,201 @@
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+
+import numpy as np
+
 import pandas as pd
 
 from sklearn.metrics import (
+
+    roc_curve,
+
     accuracy_score,
+
     precision_score,
+
     recall_score,
+
     f1_score,
+
     confusion_matrix,
+
     classification_report,
+
 )
 
 
-def evaluate(
+# ======================================================
+# CM-EER
+# ======================================================
+
+def compute_eer(
+
     y_true,
-    y_pred,
-    output_dir,
-    class_names=None,
+
+    y_score,
+
 ):
 
-    output_dir = Path(output_dir)
+    fpr, tpr, thresholds = roc_curve(
+
+        y_true,
+
+        y_score,
+
+        pos_label=1,
+
+    )
+
+    fnr = 1 - tpr
+
+    idx = np.nanargmin(
+
+        np.abs(
+
+            fnr - fpr
+
+        )
+
+    )
+
+    eer = (
+
+        fpr[idx]
+
+        + fnr[idx]
+
+    ) / 2
+
+    threshold = thresholds[idx]
+
+    return eer, threshold
+
+
+# ======================================================
+# MAIN EVALUATION
+# ======================================================
+
+def evaluate(
+
+    y_true,
+
+    y_pred,
+
+    output_dir,
+
+    class_names=None,
+
+    y_true_binary=None,
+
+    y_spoof_score=None,
+
+):
+
+    output_dir = Path(
+
+        output_dir
+
+    )
 
     output_dir.mkdir(
+
         parents=True,
+
         exist_ok=True,
+
     )
 
     # ==================================================
-    # METRICS
+    # CLASSIFICATION METRICS
     # ==================================================
 
     metrics = {
 
         "accuracy": accuracy_score(
+
             y_true,
+
             y_pred,
+
         ),
 
         "precision_macro": precision_score(
+
             y_true,
+
             y_pred,
+
             average="macro",
+
             zero_division=0,
+
         ),
 
         "recall_macro": recall_score(
+
             y_true,
+
             y_pred,
+
             average="macro",
+
             zero_division=0,
+
         ),
 
         "f1_macro": f1_score(
+
             y_true,
+
             y_pred,
+
             average="macro",
+
             zero_division=0,
+
         ),
 
     }
 
+    # ==================================================
+    # CM-EER
+    # ==================================================
+
+    if (
+
+        y_true_binary is not None
+
+        and
+
+        y_spoof_score is not None
+
+    ):
+
+        eer, threshold = compute_eer(
+
+            y_true_binary,
+
+            y_spoof_score,
+
+        )
+
+        metrics["cm_eer"] = eer
+
+        metrics["eer_threshold"] = threshold
+
+    # ==================================================
+    # SAVE METRICS
+    # ==================================================
+
     pd.DataFrame(
+
         [metrics]
+
     ).to_csv(
 
         output_dir
+
         / "metrics.csv",
 
         index=False,
@@ -91,6 +221,7 @@ def evaluate(
     with open(
 
         output_dir
+
         / "classification_report.txt",
 
         "w",
@@ -99,7 +230,11 @@ def evaluate(
 
     ) as f:
 
-        f.write(report)
+        f.write(
+
+            report
+
+        )
 
     # ==================================================
     # CONFUSION MATRIX
@@ -129,7 +264,7 @@ def evaluate(
 
     plt.figure(
 
-        figsize=(6, 6)
+        figsize=(7, 7)
 
     )
 
@@ -185,7 +320,9 @@ def evaluate(
 
                     "white"
 
-                    if cm[i, j] > threshold
+                    if cm[i, j]
+
+                    > threshold
 
                     else "black"
 
@@ -216,6 +353,7 @@ def evaluate(
     plt.savefig(
 
         output_dir
+
         / "confusion_matrix.png",
 
         dpi=300,

@@ -1,8 +1,10 @@
 from pathlib import Path
+
 import shutil
 
 import librosa
 import numpy as np
+import pandas as pd
 import soundfile as sf
 
 from tqdm import tqdm
@@ -18,7 +20,7 @@ TARGET_DURATION = 4
 
 TARGET_LENGTH = TARGET_SR * TARGET_DURATION
 
-DATASET_NAME = "VSASV_50000"
+DATASET_NAME = "VSASV_PAPER_50000"
 
 # =======================================================
 # PATHS
@@ -38,6 +40,8 @@ OUTPUT_DIR = PROCESSED_ROOT / DATASET_NAME
 
 LABELS_PATH = INPUT_DIR / "labels.csv"
 
+OUTPUT_LABELS = OUTPUT_DIR / "labels.csv"
+
 # =======================================================
 # CHECK
 # =======================================================
@@ -45,38 +49,61 @@ LABELS_PATH = INPUT_DIR / "labels.csv"
 if not INPUT_DIR.exists():
 
     raise FileNotFoundError(
-
         f"Cannot find {INPUT_DIR}"
-
     )
 
 if not LABELS_PATH.exists():
 
     raise FileNotFoundError(
-
         f"Cannot find {LABELS_PATH}"
-
     )
 
 # =======================================================
-# FUNCTIONS
+# AUDIO LOADER
+# =======================================================
+
+def load_audio(file_path):
+
+    audio, _ = librosa.load(
+
+        file_path,
+
+        sr=TARGET_SR,
+
+        mono=True,
+
+    )
+
+    return audio
+
+
+# =======================================================
+# PREPROCESS AUDIO
 # =======================================================
 
 def preprocess_audio(audio):
 
-    # mono
+    if audio is None:
 
-    if audio.ndim > 1:
+        return None
 
-        audio = np.mean(
+    if len(audio) == 0:
 
-            audio,
+        return None
 
-            axis=1,
+    if not np.all(np.isfinite(audio)):
 
-        )
+        return None
 
-    # normalize
+    # ==========================================
+    # remove dc offset
+    # ==========================================
+
+    audio = audio - np.mean(audio)
+
+    # ==========================================
+    # normalize amplitude
+    # ==========================================
 
     max_amp = np.max(
 
@@ -86,9 +113,15 @@ def preprocess_audio(audio):
 
     if max_amp > 0:
 
-        audio = audio / max_amp
+        audio = audio / (
 
-    # padding
+            max_amp + 1e-8
+
+        )
+
+    # ==========================================
+    # fixed length = 4 seconds
+    # ==========================================
 
     if len(audio) < TARGET_LENGTH:
 
@@ -104,88 +137,32 @@ def preprocess_audio(audio):
 
         )
 
-    # crop
-
-    elif len(audio) > TARGET_LENGTH:
+    else:
 
         audio = audio[:TARGET_LENGTH]
 
-    return audio
+    return audio.astype(
 
-
-# =======================================================
-# MAIN
-# =======================================================
-
-print()
-
-print("=" * 70)
-
-print("PREPROCESS DATASET")
-
-print("=" * 70)
-
-print(DATASET_NAME)
-
-# =======================================================
-# CREATE OUTPUT FOLDER
-# =======================================================
-
-OUTPUT_DIR.mkdir(
-
-    parents=True,
-
-    exist_ok=True,
-
-)
-
-# copy labels
-
-shutil.copy2(
-
-    LABELS_PATH,
-
-    OUTPUT_DIR / "labels.csv",
-
-)
-
-# =======================================================
-# LOAD FILES
-# =======================================================
-
-wav_files = list(
-
-    INPUT_DIR.rglob("*.wav")
-
-)
-
-print()
-
-print(f"Total wav files: {len(wav_files)}")
-
-print()
-
-# =======================================================
-# PREPROCESS
-# =======================================================
-
-for wav_path in tqdm(wav_files):
-
-    relative_path = wav_path.relative_to(
-
-        INPUT_DIR
+        np.float32
 
     )
 
-    save_path = (
 
-        OUTPUT_DIR
+# =======================================================
+# PREPROCESS DATASET
+# =======================================================
 
-        / relative_path
+def preprocess_dataset():
 
-    )
+    print()
 
-    save_path.parent.mkdir(
+    print("=" * 70)
+
+    print("STEP 2 - AUDIO PREPROCESSING")
+
+    print("=" * 70)
+
+    OUTPUT_DIR.mkdir(
 
         parents=True,
 
@@ -193,48 +170,151 @@ for wav_path in tqdm(wav_files):
 
     )
 
-    # skip if existed
+    labels = pd.read_csv(
 
-    if save_path.exists():
-
-        continue
-
-    audio, _ = librosa.load(
-
-        wav_path,
-
-        sr=TARGET_SR,
-
-        mono=True,
+        LABELS_PATH
 
     )
 
-    audio = preprocess_audio(
+    print()
 
-        audio
+    print(
 
-    )
-
-    sf.write(
-
-        save_path,
-
-        audio,
-
-        TARGET_SR,
+        f"Total samples: {len(labels)}"
 
     )
 
-print()
+    error_count = 0
 
-print("=" * 70)
+    for _, row in tqdm(
 
-print("DONE")
+        labels.iterrows(),
 
-print("=" * 70)
+        total=len(labels),
 
-print()
+    ):
 
-print("Saved to:")
+        try:
 
-print(OUTPUT_DIR)
+            relative_path = Path(
+
+                row["filename"]
+
+            )
+
+            input_path = (
+
+                INPUT_DIR
+
+                / relative_path
+
+            )
+
+            output_path = (
+
+                OUTPUT_DIR
+
+                / relative_path
+
+            )
+
+            output_path.parent.mkdir(
+
+                parents=True,
+
+                exist_ok=True,
+
+            )
+
+            if output_path.exists():
+
+                continue
+
+            audio = load_audio(
+
+                input_path
+
+            )
+
+            audio = preprocess_audio(
+
+                audio
+
+            )
+
+            if audio is None:
+
+                error_count += 1
+
+                continue
+
+            sf.write(
+
+                output_path,
+
+                audio,
+
+                TARGET_SR,
+
+            )
+
+        except Exception as e:
+
+            error_count += 1
+
+            print()
+
+            print(
+
+                f"[ERROR] {input_path}"
+
+            )
+
+            print(e)
+
+            continue
+
+    # ==================================================
+    # COPY LABELS
+    # ==================================================
+
+    shutil.copy2(
+
+        LABELS_PATH,
+
+        OUTPUT_LABELS,
+
+    )
+
+    print()
+
+    print("=" * 70)
+
+    print("DONE")
+
+    print("=" * 70)
+
+    print()
+
+    print(
+
+        f"Errors: {error_count}"
+
+    )
+
+    print()
+
+    print(
+
+        f"Saved to: {OUTPUT_DIR}"
+
+    )
+
+
+# =======================================================
+# MAIN
+# =======================================================
+
+if __name__ == "__main__":
+
+    preprocess_dataset()

@@ -2,6 +2,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+
 import torch
 
 from torch.utils.data import Dataset
@@ -10,56 +11,50 @@ from torch.utils.data import Dataset
 class SpeechDataset(Dataset):
 
     def __init__(
+
         self,
+
         dataset_dir,
+
         split,
+
         label_column,
+
         label_map,
-        allowed_labels=None,
+
+        specaugment=None,
+
     ):
 
-        self.dataset_dir = Path(dataset_dir)
+        self.dataset_dir = Path(
+
+            dataset_dir
+
+        )
+
+        self.specaugment = specaugment
 
         self.label_column = label_column
 
         self.label_map = label_map
 
+        self.split = split
+
         self.df = pd.read_csv(
 
             self.dataset_dir
+
             / "labels.csv"
 
         )
 
-        # split
-
         self.df = self.df[
 
-            self.df["split"] == split
+            self.df["split"]
+
+            == split
 
         ]
-
-        # chỉ giữ label cần thiết
-
-        if allowed_labels is not None:
-
-            self.df = self.df[
-
-                self.df[label_column]
-
-                .isin(allowed_labels)
-
-            ]
-
-        else:
-
-            self.df = self.df[
-
-                self.df[label_column]
-
-                .isin(label_map.keys())
-
-            ]
 
         self.df = self.df.reset_index(
 
@@ -69,7 +64,11 @@ class SpeechDataset(Dataset):
 
     def __len__(self):
 
-        return len(self.df)
+        return len(
+
+            self.df
+
+        )
 
     def __getitem__(
 
@@ -109,17 +108,32 @@ class SpeechDataset(Dataset):
 
         mel = mel.unsqueeze(0)
 
+        # ==========================
+        # SpecAugment
+        # train only
+        # ==========================
+
+        if self.specaugment is not None:
+
+            mel = self.specaugment(
+
+                mel.unsqueeze(0)
+
+            )
+
+            mel = mel.squeeze(0)
+
         label = self.label_map[
 
             row[self.label_column]
 
         ]
 
-        return (
+        return {
 
-            mel,
+            "mel": mel,
 
-            torch.tensor(
+            "label": torch.tensor(
 
                 label,
 
@@ -127,7 +141,11 @@ class SpeechDataset(Dataset):
 
             ),
 
-        )
+            "speaker": row["speaker"],
+
+            "filename": row["filename"],
+
+        }
 
 
 # ======================================================
@@ -152,48 +170,28 @@ def debug_dataset(
 
     print(
 
-        f"Total samples: {len(dataset)}"
+        f"Total: {len(dataset)}"
 
     )
 
     print()
 
-    for i in range(
+    sample = dataset[0]
 
-        min(5, len(dataset))
+    print(
 
-    ):
+        sample["mel"].shape
 
-        x, y = dataset[i]
+    )
 
-        print(
+    print(
 
-            f"sample={i}"
+        sample["label"]
 
-        )
+    )
 
-        print(
+    print(
 
-            f"shape={x.shape}"
+        sample["speaker"]
 
-        )
-
-        print(
-
-            f"label={y.item()}"
-
-        )
-
-        print(
-
-            f"min={x.min():.4f}"
-
-        )
-
-        print(
-
-            f"max={x.max():.4f}"
-
-        )
-
-        print()
+    )

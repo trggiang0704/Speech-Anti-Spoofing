@@ -6,7 +6,6 @@ import pandas as pd
 
 from tqdm import tqdm
 
-
 # ======================================================
 # CONFIG
 # ======================================================
@@ -17,12 +16,13 @@ N_FFT = 1024
 
 HOP_LENGTH = 256
 
-N_MELS = 128
+N_MELS = 80
 
-MAX_LEN = 400
+DURATION = 4
 
-DATASET_NAME = "VSASV_50000"
+MAX_LEN = int(np.ceil((SR * DURATION) / HOP_LENGTH))
 
+DATASET_NAME = "VSASV_PAPER_50000"
 
 # ======================================================
 # PATHS
@@ -46,7 +46,7 @@ OUTPUT_DIR = (
 
     DATASET_ROOT
 
-    / "melspec"
+    / "logmelspec"
 
     / DATASET_NAME
 
@@ -59,7 +59,6 @@ LABELS_PATH = (
     / "labels.csv"
 
 )
-
 
 # ======================================================
 # CHECK
@@ -81,12 +80,11 @@ if not LABELS_PATH.exists():
 
     )
 
-
 # ======================================================
-# CREATE MEL
+# LOG-MEL
 # ======================================================
 
-def create_mel(audio_path):
+def create_logmel(audio_path):
 
     audio, _ = librosa.load(
 
@@ -110,6 +108,8 @@ def create_mel(audio_path):
 
         n_mels=N_MELS,
 
+        power=2.0,
+
     )
 
     mel = librosa.power_to_db(
@@ -120,15 +120,17 @@ def create_mel(audio_path):
 
     )
 
+    # z-score normalization
+
     mel = (
 
-        mel - mel.min()
+        mel
+
+        - mel.mean()
 
     ) / (
 
-        mel.max()
-
-        - mel.min()
+        mel.std()
 
         + 1e-8
 
@@ -166,7 +168,6 @@ def create_mel(audio_path):
 
     )
 
-
 # ======================================================
 # MAIN
 # ======================================================
@@ -177,13 +178,11 @@ def main():
 
     print("=" * 70)
 
-    print("CREATE MELSPECTROGRAM")
+    print("CREATE LOG-MEL SPECTROGRAM")
 
     print("=" * 70)
 
     print()
-
-    print(DATASET_NAME)
 
     OUTPUT_DIR.mkdir(
 
@@ -198,8 +197,6 @@ def main():
         LABELS_PATH
 
     )
-
-    print()
 
     print(
 
@@ -245,13 +242,11 @@ def main():
 
         )
 
-        # skip if already exists
-
         if save_path.exists():
 
             continue
 
-        mel = create_mel(
+        mel = create_logmel(
 
             audio_path
 
@@ -264,8 +259,6 @@ def main():
             mel,
 
         )
-
-    # copy labels.csv
 
     labels.to_csv(
 
@@ -289,10 +282,7 @@ def main():
 
     print("Saved to:")
 
-    print()
-
     print(OUTPUT_DIR)
-
 
 if __name__ == "__main__":
 
