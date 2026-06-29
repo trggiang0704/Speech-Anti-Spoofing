@@ -1,0 +1,45 @@
+======================================================================
+SPEAKER VERIFICATION ERROR ANALYSIS
+======================================================================
+
+Total verification pairs : 100433
+Correct predictions      : 83103
+Incorrect predictions    : 17330
+Threshold (EER)          : 0.922047
+
+False Acceptance (FP)
+    17255
+
+False Rejection (FN)
+    75
+
+======================================================================
+MAIN ERROR ANALYSIS
+======================================================================
+
+1. False Acceptance
+- Different speakers nhưng embedding quá giống nhau.
+- Có thể do đặc trưng ngữ âm hoặc đặc điểm phổ của hai speaker gần nhau.
+- Cosine Similarity vượt quá ngưỡng nên hệ thống nhận nhầm cùng người nói.
+
+2. False Rejection
+- Hai audio cùng speaker nhưng embedding bị tách xa.
+- Có thể do chất lượng ghi âm, tốc độ nói, ngữ điệu hoặc nhiễu môi trường.
+
+3. Hard Positive Pairs
+- Positive pair có similarity thấp nhất.
+- Đây là các trường hợp khó nhất đối với mô hình.
+
+4. Hard Negative Pairs
+- Negative pair có similarity cao nhất.
+- Đây là nguyên nhân chính gây False Acceptance.
+
+======================================================================
+POSSIBLE IMPROVEMENTS
+======================================================================
+
+- Sử dụng Additive Margin Softmax / ArcFace để tăng khoảng cách embedding.
+- Hard Negative Mining trong quá trình huấn luyện.
+- Bổ sung dữ liệu speaker và nhiều điều kiện ghi âm hơn.
+- Huấn luyện bằng metric learning (Triplet Loss hoặc Contrastive Loss).
+- Kết hợp backbone mạnh hơn như ECAPA-TDNN hoặc ResNet.

@@ -1,0 +1,11 @@
+file1,file2,pair_label,similarity_score,prediction,correct,distance
+test/adversarial_attack/adv_00825.wav,test/adversarial_attack/adv_01388.wav,0,0.9993901252746582,1,False,0.07734334468841542
+test/adversarial_attack/adv_00928.wav,test/adversarial_attack/adv_01388.wav,0,0.9993690252304076,1,False,0.07732224464416482
+test/adversarial_attack/adv_00719.wav,test/adversarial_attack/adv_00336.wav,0,0.9993467330932616,1,False,0.07729995250701882
+test/adversarial_attack/adv_00243.wav,test/adversarial_attack/adv_00606.wav,0,0.9993383884429932,1,False,0.07729160785675038
+test/adversarial_attack/adv_00828.wav,test/adversarial_attack/adv_01648.wav,0,0.9992609024047852,1,False,0.07721412181854237
+test/adversarial_attack/adv_01013.wav,test/adversarial_attack/adv_01388.wav,0,0.9992342591285706,1,False,0.07718747854232777
+test/adversarial_attack/adv_01029.wav,test/adversarial_attack/adv_00336.wav,0,0.9991589188575744,1,False,0.07711213827133157
+test/adversarial_attack/adv_00519.wav,test/adversarial_attack/adv_01549.wav,0,0.9991568326950072,1,False,0.07711005210876443
+test/adversarial_attack/adv_00766.wav,test/adversarial_attack/adv_00336.wav,0,0.9991461634635924,1,False,0.07709938287734963
+test/adversarial_attack/adv_01666.wav,test/adversarial_attack/adv_00454.wav,0,0.9991408586502076,1,False,0.07709407806396484

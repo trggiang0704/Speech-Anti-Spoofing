@@ -1,0 +1,4 @@
+audio_type,total_pairs,error_pairs,error_rate
+bonafide,63953,6861,0.10728191015276844
+adversarial_attack,54053,4512,0.08347362773574085
+voice_conversion,56375,5992,0.10628824833702882

@@ -1,0 +1,11 @@
+file1,file2,pair_label,similarity_score,prediction,correct,distance
+test/voice_conversion/voi_00356.wav,test/bonafide/bon_00885.wav,1,-0.8345320820808411,0,False,1.7565788626670837
+test/voice_conversion/voi_00771.wav,test/adversarial_attack/adv_00631.wav,1,-0.7843009829521179,0,False,1.7063477635383606
+test/bonafide/bon_00293.wav,test/adversarial_attack/adv_00632.wav,1,-0.7653594017028809,0,False,1.6874061822891235
+test/adversarial_attack/adv_00250.wav,test/voice_conversion/voi_01385.wav,1,-0.7438763380050659,0,False,1.6659231185913086
+test/voice_conversion/voi_00758.wav,test/adversarial_attack/adv_00537.wav,1,-0.6421505808830261,0,False,1.5641973614692688
+test/voice_conversion/voi_01540.wav,test/adversarial_attack/adv_00164.wav,1,-0.6023139357566833,0,False,1.524360716342926
+test/adversarial_attack/adv_00931.wav,test/voice_conversion/voi_01145.wav,1,-0.5835254192352295,0,False,1.5055721998214722
+test/voice_conversion/voi_01393.wav,test/adversarial_attack/adv_00295.wav,1,-0.5658807754516602,0,False,1.4879275560379028
+test/adversarial_attack/adv_00561.wav,test/voice_conversion/voi_00577.wav,1,-0.5312873721122742,0,False,1.4533341526985168
+test/adversarial_attack/adv_01625.wav,test/voice_conversion/voi_00541.wav,1,-0.5296344757080078,0,False,1.4516812562942505
