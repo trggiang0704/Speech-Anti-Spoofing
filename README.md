@@ -47,7 +47,7 @@ CNN Backbone
                        Speaker Verification
 ```
 
-![Pipeline dự án](outputs\image.png)
+<img width="1536" height="1024" alt="Pipeline dự án" src="https://github.com/user-attachments/assets/3bcf0047-a539-4e71-b840-aad697da00ad" />
 
 ---
 
@@ -201,11 +201,23 @@ python src/evaluate_stage2.py
 | Macro F1 | 99.90% |
 | CM-EER | 0.06% |
 
-![Loss Curve](outputs\stage1_cnn\loss_curve.png)
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/1e172b9b-09e6-4454-9279-48d23a670c17" width="800">
+  <br>
+  <b>Figure 1.</b> Loss Curve
+</p>
 
-![Validation Metrics Curve](outputs\stage1_cnn\metric_curve.png)
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/9bd4cbea-c4cc-4f5a-b0b9-408ddd38ef30" width="800">
+  <br>
+  <b>Figure 2.</b> Validation Metrics Curve
+</p>
 
-![Confusion Matrix](outputs\stage1_cnn\confusion_matrix.png)
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/7f6091fc-eaf1-4dd1-a05d-452cc3795217" width="700">
+  <br>
+  <b>Figure 3.</b> Confusion Matrix
+</p>
 
 ---
 
@@ -217,9 +229,17 @@ python src/evaluate_stage2.py
 | AUC | 88.25% |
 | EER | 17.29% |
 
-![ROC Curve](outputs\stage2_verification\verification_roc_curve.png)
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/76ad6c47-bd37-4295-a7b9-e0aabb47e85d" width="700">
+  <br>
+  <b>Figure 4.</b> ROC Curve
+</p>
 
-![Score Distribution](outputs\stage2_verification\score_distribution.png)
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/abfed991-6dd0-4027-bee6-40b6ca8b6d81" width="800">
+  <br>
+  <b>Figure 5.</b> Score Distribution
+</p>
 
 ---
 
